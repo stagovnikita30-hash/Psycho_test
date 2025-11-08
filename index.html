@@ -1,16 +1,37 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <title>Психотест 100 вопросов</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Психологическая анкета — 160 вопросов</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <h1>Психологический тест</h1>
-  <div id="test-container"></div>
-  <button id="submit-btn">Отправить ответы</button>
-  <pre id="results"></pre>
+  <main class="container">
+    <header>
+      <h1>Психологическая анкета — 160 вопросов</h1>
+      <p>Пожалуйста, ответьте **своими словами** на каждый вопрос. Все поля обязательны.</p>
+    </header>
 
-  <script src="script.js"></script>
+    <form id="testForm" autocomplete="off" novalidate>
+      <div id="questionsContainer"></div>
+
+      <div class="actions">
+        <button id="submitBtn" type="submit">Отправить ответы</button>
+      </div>
+    </form>
+
+    <section id="resultSection" class="hidden">
+      <h2>Результат анализа</h2>
+      <div id="results" class="resultBox"></div>
+      <div id="downloadArea" class="downloadArea"></div>
+    </section>
+
+    <footer class="footer">
+      <small>Данные не сохраняются на внешних серверах кроме временной обработки OpenAI во время анализа (ключ в Vercel).</small>
+    </footer>
+  </main>
+
+  <script type="module" src="/script.js"></script>
 </body>
 </html>

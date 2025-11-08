@@ -1,108 +1,53 @@
-/* Общие настройки */
-body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: #121212;
-  color: #e0e0e0;
+:root{
+  --bg:#0f1115;
+  --card:#17181b;
+  --muted:#bfc7cf;
+  --accent:#7c4dff;
+  --accent-dark:#5b22cc;
 }
 
-h1 {
-  text-align: center;
-  padding: 20px 0;
-  font-size: 2em;
-  color: #ffffff;
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter, Arial, sans-serif;background:var(--bg);color:#e6eef6}
+.container{max-width:980px;margin:28px auto;padding:20px}
+header h1{margin:6px 0 6px;font-size:1.6rem}
+header p{color:var(--muted);margin:0 0 18px 0}
+
+#questionsContainer{display:flex;flex-direction:column;gap:12px}
+
+/* карточка вопроса */
+.qCard{
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border:1px solid rgba(255,255,255,0.03);
+  padding:12px;border-radius:10px;display:flex;flex-direction:column;gap:8px;
 }
-
-/* Контейнер для вопросов */
-#test-container {
-  max-width: 800px;
-  margin: 0 auto;
-  padding: 10px;
+.qCard .qTitle{font-weight:600;color:#f1f5f9}
+.qCard textarea{
+  width:100%;min-height:80px;resize:vertical;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);
+  background:#0b0c10;color:#e6eef6;outline:none;font-size:15px;
 }
+.qCard textarea:focus{box-shadow:0 0 0 3px rgba(124,77,255,0.12);border-color:var(--accent)}
 
-/* Блок вопроса */
-.question {
-  background-color: #1e1e1e;
-  margin: 15px 0;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-  transition: transform 0.2s;
+.actions{display:flex;justify-content:center;margin-top:18px}
+button#submitBtn{
+  background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+  color:white;border:none;padding:12px 18px;font-size:16px;border-radius:10px;cursor:pointer;
 }
+button#submitBtn:active{transform:translateY(1px)}
+.hidden{display:none}
 
-.question:hover {
-  transform: scale(1.02);
+.resultBox{
+  margin-top:10px;background:var(--card);padding:12px;border-radius:8px;color:#e6eef6;white-space:pre-wrap;
+  max-height:540px;overflow:auto;border:1px solid rgba(255,255,255,0.03);
 }
+.downloadArea{margin-top:12px}
+.downloadArea a{display:inline-block;margin-right:8px;margin-top:8px;padding:8px 12px;background:transparent;color:var(--accent);
+  border:1px solid rgba(124,77,255,0.25);border-radius:8px;text-decoration:none;font-weight:600}
+.downloadArea a:hover{text-decoration:underline}
 
-/* Опции вопросов */
-.options label {
-  display: block;
-  margin: 8px 0;
-  cursor: pointer;
-}
+.footer{margin-top:18px;color:var(--muted);font-size:13px;text-align:center}
 
-.options input[type="text"] {
-  margin-top: 5px;
-  width: 100%;
-  padding: 8px;
-  border-radius: 6px;
-  border: none;
-  background-color: #2a2a2a;
-  color: #e0e0e0;
-}
-
-.options input[type="text"]::placeholder {
-  color: #aaaaaa;
-}
-
-/* Кнопка отправки */
-button {
-  display: block;
-  margin: 25px auto;
-  padding: 12px 30px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #ffffff;
-  background: linear-gradient(135deg, #6a0dad, #00bfff);
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.5);
-}
-
-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.6);
-}
-
-/* Результаты */
-#results {
-  max-width: 800px;
-  margin: 20px auto;
-  padding: 15px;
-  background-color: #1e1e1e;
-  border-radius: 10px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.5);
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-size: 1em;
-}
-
-/* Адаптивность */
-@media screen and (max-width: 600px) {
-  h1 {
-    font-size: 1.5em;
-    padding: 15px 0;
-  }
-
-  .question {
-    padding: 15px;
-  }
-
-  button {
-    width: 80%;
-    padding: 10px 0;
-  }
+@media(max-width:700px){
+  .qCard textarea{min-height:110px}
+  .container{padding:12px}
+  button#submitBtn{width:100%}
 }
