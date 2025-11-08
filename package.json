@@ -1,11 +1,11 @@
 {
-  "name": "psychotest",
+  "name": "psycho_test",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "dev": "vercel dev"
+    "start": "node index.js"
   },
   "dependencies": {
-    "openai": "^4.30.0"
+    "openai": "^4.33.0"
   }
 }
