@@ -1,4 +1,6 @@
 // script.js (module)
+
+// 160 вопросов (точно твои вопросы)
 const QUESTIONS = [
 "1. Вам тяжело видеть, что кто-то страдает?",
 "2. Вы сопереживаете людям, когда они рассказывают о своих проблемах?",
@@ -151,7 +153,7 @@ const QUESTIONS = [
 "149. Оцените: «Я могу принимать решения даже в условиях давления».",
 "150. Вы способны распределять свои ресурсы (время, силы) рационально?",
 "151. Насколько гибко вы меняете стратегии, если текущая не работает?",
-"152. Оцените: «Я могу сохранять спокойствие и эффективность в неожиданных ситуациях».",
+"152. Оцените: «Я могу сохранять спокойствие и эффективности в неожиданных ситуациях».",
 "153. Как вы действуете, если сталкиваетесь с множеством задач одновременно?",
 "154. Насколько вы следите за своим здоровьем для поддержания эффективности?",
 "155. Оцените: «Я могу поддерживать продуктивность при физическом или эмоциональном напряжении».",
@@ -168,23 +170,18 @@ const resultsEl = document.getElementById("results");
 const resultSection = document.getElementById("resultSection");
 const downloadArea = document.getElementById("downloadArea");
 
-// Render questions
-QUESTIONS.forEach((text, idx) => {
-  const div = document.createElement("div");
-  div.className = "qCard";
-  const label = document.createElement("label");
-  label.className = "qTitle";
-  label.textContent = `${text}`;
-  const ta = document.createElement("textarea");
-  ta.name = `q${idx+1}`;
-  ta.placeholder = "Напишите ответ своими словами (обязательно)";
-  ta.required = true;
-  div.appendChild(label);
-  div.appendChild(ta);
-  container.appendChild(div);
+// render questions
+QUESTIONS.forEach((qText, i) => {
+  const block = document.createElement("div");
+  block.classList.add("qCard");
+  block.innerHTML = `
+    <label class="qTitle"><b>${i+1}.</b> ${qText}</label>
+    <textarea name="q${i+1}" placeholder="Напишите ответ своими словами (обязательно)"></textarea>
+  `;
+  container.appendChild(block);
 });
 
-// helper to create+click download link
+// helper to download blob
 function downloadBlob(blob, filename){
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -202,22 +199,25 @@ form.addEventListener("submit", async (e) => {
   const textareas = Array.from(container.querySelectorAll("textarea"));
   const answers = [];
   for (let i = 0; i < textareas.length; i++){
-    const v = textareas[i].value.trim();
-    if (!v) {
+    const val = textareas[i].value.trim();
+    if (!val) {
       alert(`Пожалуйста, ответьте на вопрос ${i+1}`);
       textareas[i].focus();
       return;
     }
-    answers.push({ question: QUESTIONS[i], answer: v });
+    answers.push({ question: QUESTIONS[i], answer: val });
   }
 
-  // Save answers.txt (plain)
+  // save answers.txt
   const textContent = answers.map(a => `${a.question}\nОтвет: ${a.answer}\n`).join("\n");
   const txtBlob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
   downloadBlob(txtBlob, "answers.txt");
 
+  // build fullText for API
+  const fullText = answers.map(a => `${a.question}\nОтвет: ${a.answer}`).join("\n\n");
+
   // show loading
-  resultsEl.textContent = "Идёт анализ... Пожалуйста, подождите — это может занять ~10–40 секунд.";
+  resultsEl.textContent = "Идёт анализ... Это займёт некоторое время.";
   resultSection.classList.remove("hidden");
   downloadArea.innerHTML = "";
 
@@ -225,7 +225,7 @@ form.addEventListener("submit", async (e) => {
     const resp = await fetch("/api/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answers })
+      body: JSON.stringify({ fullText })
     });
 
     if (!resp.ok) {
@@ -234,7 +234,7 @@ form.addEventListener("submit", async (e) => {
     }
 
     const data = await resp.json();
-    const analysisText = data.analysis || "Анализ не получен.";
+    const analysisText = data.analysis || data.result || "Анализ не получен.";
     resultsEl.textContent = analysisText;
 
     if (data.docBase64) {
@@ -246,7 +246,7 @@ form.addEventListener("submit", async (e) => {
       link.textContent = "Скачать результат (Word)";
       downloadArea.appendChild(link);
     } else {
-      // fallback: provide analysis as .txt
+      // fallback: download analysis.txt
       const b = new Blob([analysisText], { type: "text/plain;charset=utf-8" });
       downloadBlob(b, "analysis.txt");
     }

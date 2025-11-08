@@ -1,112 +1,85 @@
 // api/analyze.js
-import OpenAI from "openai";
-import { Document, Paragraph, Packer, TextRun } from "docx";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+
+/**
+ * Серверная функция для Vercel.
+ * Ожидает POST { fullText: "Q1...A1...Q160...A160..." }
+ * Использует GROQ API (OpenAI-compatible endpoint).
+ */
+
+const GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Метод не разрешен" });
-    return;
-  }
+  if (req.method !== "POST") return res.status(405).json({ error: "Метод не разрешён" });
 
   try {
-    const body = req.body ?? (await parseJsonBody(req));
-    const { answers } = body;
-
-    if (!Array.isArray(answers) || answers.length === 0) {
-      res.status(400).json({ error: "Нет ответов" });
+    const { fullText } = req.body ?? {};
+    if (!fullText || typeof fullText !== "string") {
+      res.status(400).json({ error: "Неверный запрос: ожидался fullText" });
       return;
     }
 
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    // Подготовка подсказки
+    const systemInstr = `Ты — профессиональный психологический аналитик. На русском языке проанализируй ответы человека.
+Разбей анализ на тематические блоки: эмпатия и близость, тревожность/нейротизм, самооценка, стиль привязанности, социальное поведение (экстраверсия/интроверсия), эмоциональная устойчивость, склонность к манипуляциям, зрелость и ответственность.
+В конце — краткий общий вывод (1–2 абзаца) и 3 практических рекомендации. Пиши конструктивно и уважительно.`;
 
-    // Сформируем подсказку — аккуратно, не слишком длинную, чтобы не переполнить токены
-    let promptIntro = `Ты — внимательный профессиональный психолог. На основе письменных ответов участника составь подробный психологический профиль на русском языке.\n\nТребования:\n- Проанализируй эмоциональный тон, паттерны мышления, признаки тревожности/самооценки, эмпатию, стиль привязанности, экстраверсию/интроверсию, склонность к манипуляциям, ответственность, зрелость и исполнительность.\n- Разбей анализ на тематические блоки (заголовки блоков).\n- В конце дай краткий общий вывод (1–2 абзаца) и 3 практических рекомендации (коротко).\n- Пиши уважительно и конструктивно.\n\nДалее идут вопросы и ответы:\n\n`;
+    const userContent = `Ниже — вопросы и ответы респондента:\n\n${fullText}\n\nДай детальный, структурированный анализ, без HTML и без служебных пометок.`;
 
-    // Добавляем ответы — ограничим длину сообщений, но передадим хотя бы ключевые
-    // Соберём в одну строку, разделяя блоки; контроль длины в случае длинных ответов
-    let qaText = "";
-    for (let i = 0; i < answers.length; i++) {
-      const a = answers[i];
-      // Обрезаем каждую ответ-строку до разумного предела (например 1200 символов) чтобы не перегреть prompt
-      const ansShort = String(a.answer).slice(0, 1200);
-      qaText += `${i+1}. ${a.question}\nОтвет: ${ansShort}\n\n`;
-    }
-
-    const userContent = promptIntro + qaText;
-
-    // Запрос в OpenAI
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1",
+    // Запрос в Groq (OpenAI-compatible endpoint)
+    const body = {
+      model: "compound-beta", // общая мощная модель Groq; можно заменить по желанию
       messages: [
-        { role: "system", content: "Ты — профессиональный психолог. Ответы должны быть на русском языке." },
+        { role: "system", content: systemInstr },
         { role: "user", content: userContent }
       ],
       temperature: 0.2,
       max_tokens: 3000
+    };
+
+    const groqResp = await fetch(GROQ_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify(body)
     });
 
-    const analysis = completion.choices?.[0]?.message?.content ?? "Модель не вернула анализа.";
-
-    // Формируем .docx (коротко: заголовок, ответы, анализ)
-    const doc = new Document({
-      sections: [
-        {
-          children: [
-            new Paragraph({
-              children: [ new TextRun({ text: "Результат анализа психологической анкеты", bold: true, size: 28 }) ]
-            }),
-            new Paragraph({ text: "" }),
-            new Paragraph({ children: [ new TextRun({ text: "Ответы респондента:", bold: true }) ] })
-          ]
-        }
-      ]
-    });
-
-    // Добавим ответы (ограничим число параграфов чтобы файл не был чрезмерно большим)
-    for (const a of answers) {
-      doc.addSection({
-        children: [
-          new Paragraph({ children: [ new TextRun({ text: a.question, bold: true }) ] }),
-          new Paragraph({ text: `Ответ: ${a.answer}` }),
-          new Paragraph({ text: "" })
-        ]
-      });
+    if (!groqResp.ok) {
+      const text = await groqResp.text();
+      console.error("Groq API error:", groqResp.status, text);
+      return res.status(502).json({ error: `Groq API error ${groqResp.status}: ${text}` });
     }
 
-    //Добавим анализ
-    const analysisLines = String(analysis).split(/\r?\n/).filter(Boolean);
-    doc.addSection({
-      children: [
-        new Paragraph({ text: "" }),
-        new Paragraph({ children: [ new TextRun({ text: "Анализ:", bold: true }) ] }),
-        ...analysisLines.map(l => new Paragraph({ text: l }))
-      ]
-    });
+    const groqJson = await groqResp.json();
+    // безопасный путь к тексту
+    const analysis = groqJson?.choices?.[0]?.message?.content ?? groqJson?.choices?.[0]?.text ?? JSON.stringify(groqJson);
+
+    // Формируем docx
+    const doc = new Document();
+    const children = [];
+
+    children.push(new Paragraph({ children: [ new TextRun({ text: "Результат анализа психологической анкеты", bold: true }) ] }));
+    children.push(new Paragraph({ text: "" }));
+    children.push(new Paragraph({ children: [ new TextRun({ text: "Анализ:", bold: true }) ] }));
+
+    // разбиваем анализ на строки и добавляем
+    const lines = String(analysis).split(/\r?\n/);
+    for (const ln of lines) {
+      children.push(new Paragraph({ text: ln }));
+    }
+
+    doc.addSection({ children });
 
     const buffer = await Packer.toBuffer(doc);
     const docBase64 = buffer.toString("base64");
 
-    // Ответ клиенту
+    // Возвращаем анализ и base64 docx
     res.status(200).json({ analysis, docBase64 });
 
   } catch (err) {
     console.error("api/analyze error:", err);
-    res.status(500).json({ error: err.message ?? String(err) });
+    res.status(500).json({ error: String(err) });
   }
-}
-
-// Helper: if req.body is a stream (older runtimes), try to parse raw JSON
-async function parseJsonBody(req) {
-  return new Promise((resolve, reject) => {
-    let data = "";
-    req.on("data", chunk => data += chunk);
-    req.on("end", () => {
-      try {
-        resolve(JSON.parse(data));
-      } catch (e) {
-        reject(e);
-      }
-    });
-    req.on("error", e => reject(e));
-  });
 }

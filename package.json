@@ -1,12 +1,12 @@
 {
-  "name": "psycho-test-160",
+  "name": "psycho-test-groq",
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "start": "vercel dev"
+    "start": "vercel dev",
+    "dev": "vercel dev"
   },
   "dependencies": {
-    "openai": "^4.33.0",
     "docx": "^9.5.1"
   }
 }
